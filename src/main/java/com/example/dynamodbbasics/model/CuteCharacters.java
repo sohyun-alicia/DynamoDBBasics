@@ -27,6 +27,8 @@ public class CuteCharacters {
     private String hometown;
     @DynamoDBAttribute
     private int age;
+    @DynamoDBAttribute
+    private Boolean active;
 
 
 }

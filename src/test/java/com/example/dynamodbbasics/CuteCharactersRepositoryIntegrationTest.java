@@ -53,10 +53,66 @@ public class CuteCharactersRepositoryIntegrationTest {
         ListTablesResult listTablesResult = amazonDynamoDB.listTables();
         if (!listTablesResult.getTableNames().contains("CuteCharacters")) {
             tableRequest = dynamoDBMapper.generateCreateTableRequest(CuteCharacters.class);
+
+            List<GlobalSecondaryIndex> globalSecondaryIndices = new ArrayList<>();
+            GlobalSecondaryIndex gsi = createGSI("animal_index", "active");
+            globalSecondaryIndices.add(gsi);
+
+            tableRequest.setGlobalSecondaryIndexes(globalSecondaryIndices);
             tableRequest.setProvisionedThroughput(new ProvisionedThroughput(1L, 1L));
             amazonDynamoDB.createTable(tableRequest);
         }
 //        dynamoDBMapper.batchDelete(repository.findAll());
+    }
+
+    @Test
+    public void deleteTable() {
+        amazonDynamoDB.deleteTable("CuteCharacters");
+    }
+
+    /**
+    * HashKey 만 가지는 Global Secondary Index 생성 메서드
+    * */
+    private GlobalSecondaryIndex createGSI(String indexName, String attributeName) {
+        List<KeySchemaElement> keySchemaElements = new ArrayList<>();
+        KeySchemaElement keySchemaElement = new KeySchemaElement();
+        keySchemaElement.withKeyType("HASH");
+        keySchemaElement.withAttributeName(attributeName);
+        keySchemaElements.add(keySchemaElement);
+
+        GlobalSecondaryIndex index = new GlobalSecondaryIndex();
+        index.setIndexName(indexName);
+        index.setKeySchema(keySchemaElements);
+        index.setProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
+        index.setProjection(new Projection().withProjectionType(ProjectionType.ALL));
+        return index;
+    }
+
+    /**
+     * HashKey + RangeKey 를 Primary Key 로 가지는 Global Secondary Index 생성 메서드
+     * */
+    private GlobalSecondaryIndex createGSI(String indexName, String hashAttribute, String rangeAttribute) {
+
+        List<KeySchemaElement> keySchemaElements = new ArrayList<>();
+
+        GlobalSecondaryIndex index = new GlobalSecondaryIndex();
+        index.setIndexName(indexName);
+
+        KeySchemaElement keySchemaElement = new KeySchemaElement();
+        keySchemaElement.setKeyType("HASH");
+        keySchemaElement.setAttributeName(hashAttribute);
+        keySchemaElements.add(keySchemaElement);
+
+        keySchemaElement.setKeyType("RANGE");
+        keySchemaElement.setAttributeName(rangeAttribute);
+        keySchemaElements.add(keySchemaElement);
+
+        index.setKeySchema(keySchemaElements);
+        index.setProjection(new Projection().withProjectionType(ProjectionType.ALL));
+        index.setProvisionedThroughput(new ProvisionedThroughput()
+                .withWriteCapacityUnits(1L)
+                .withReadCapacityUnits(1L));
+        return index;
     }
 
     @Test
@@ -102,17 +158,16 @@ public class CuteCharactersRepositoryIntegrationTest {
     }
 
 
-
     @Test
-    public void givenItemWithExpected_whenRunFindAll_thenItemIsFound() {
+    public void createTableAndItems() {
         List<CuteCharacters> characters = new ArrayList<>();
-        CuteCharacters chunsik = new CuteCharacters(new CuteCharactersId(), "kakao", "chunsik", "cat", "Inje", 3);
-        CuteCharacters ryan = new CuteCharacters(new CuteCharactersId(), "kakao", "ryan", "tiger", "Seoul", 5);
-        CuteCharacters apeach = new CuteCharacters(new CuteCharactersId(), "kakao", "apeach", "plum", "Cheongju", 4);
-        CuteCharacters minini = new CuteCharacters(new CuteCharactersId(), "ig", "minini", "chick", "Jeju", 1);
-        CuteCharacters pikachu = new CuteCharacters(new CuteCharactersId(), "pokemon", "pikachu", "rat", "Paju", 25);
-        CuteCharacters ggobuki = new CuteCharacters(new CuteCharactersId(), "pokemon", "ggobuki", "turtle", "Sokcho", 18);
-        CuteCharacters mangnanyong = new CuteCharacters(new CuteCharactersId(), "pokemon", "mangnanyong", "dragon", "Daejeon", 15);
+        CuteCharacters chunsik = new CuteCharacters(new CuteCharactersId(), "kakao", "chunsik", "cat", "Inje", 3, true);
+        CuteCharacters ryan = new CuteCharacters(new CuteCharactersId(), "kakao", "ryan", "tiger", "Seoul", 5, true);
+        CuteCharacters apeach = new CuteCharacters(new CuteCharactersId(), "kakao", "apeach", "plum", "Cheongju", 4, true);
+        CuteCharacters minini = new CuteCharacters(new CuteCharactersId(), "ig", "minini", "chick", "Jeju", 1, true);
+        CuteCharacters pikachu = new CuteCharacters(new CuteCharactersId(), "pokemon", "pikachu", "rat", "Paju", 25, true);
+        CuteCharacters ggobuki = new CuteCharacters(new CuteCharactersId(), "pokemon", "ggobuki", "turtle", "Sokcho", 18, true);
+        CuteCharacters mangnanyong = new CuteCharacters(new CuteCharactersId(), "pokemon", "mangnanyong", "dragon", "Daejeon", 15, true);
         characters.add(chunsik);
         characters.add(ryan);
         characters.add(apeach);
